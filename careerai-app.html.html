@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CareerAI — App</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue: #185FA5; --blue-light: #E6F1FB; --blue-dark: #0C447C;
+    --teal-light: #E1F5EE; --teal-dark: #085041;
+    --text: #1a1a1a; --muted: #6b7280; --hint: #9ca3af;
+    --bg: #ffffff; --surface: #f9fafb; --border: rgba(0,0,0,0.1);
+    --radius: 8px; --radius-lg: 12px;
+  }
+  body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--surface); font-size: 15px; line-height: 1.6; }
+
+  /* NAV */
+  nav { background: var(--bg); border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 10; }
+  .logo { display: flex; align-items: center; gap: 8px; }
+  .logo-box { width: 28px; height: 28px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; }
+  .logo-box svg { width: 15px; height: 15px; fill: #E6F1FB; }
+  .logo-name { font-size: 15px; font-weight: 600; }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .back-link { font-size: 13px; color: var(--muted); padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); cursor: pointer; }
+  .back-link:hover { background: var(--surface); }
+
+  /* LAYOUT */
+  .app-layout { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; display: grid; grid-template-columns: 220px 1fr; gap: 1.5rem; align-items: start; }
+  @media (max-width: 700px) { .app-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+  /* SIDEBAR */
+  .sidebar { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem; }
+  .sidebar-title { font-size: 11px; font-weight: 600; color: var(--hint); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; padding: 0 4px; }
+  .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius); cursor: pointer; font-size: 14px; color: var(--muted); transition: all .15s; }
+  .sidebar-item:hover { background: var(--surface); color: var(--text); }
+  .sidebar-item.active { background: var(--blue-light); color: var(--blue-dark); font-weight: 500; }
+  .sidebar-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .sidebar-divider { height: 1px; background: var(--border); margin: 10px 0; }
+  .stat-mini { padding: 10px; background: var(--surface); border-radius: var(--radius); margin-top: 10px; }
+  .stat-mini-label { font-size: 11px; color: var(--hint); margin-bottom: 2px; }
+  .stat-mini-val { font-size: 20px; font-weight: 600; color: var(--text); }
+
+  /* MAIN */
+  .main-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .card-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); }
+  .card-title { font-size: 16px; font-weight: 600; margin-bottom: 3px; }
+  .card-sub { font-size: 13px; color: var(--muted); }
+  .card-body { padding: 1.5rem; }
+
+  /* FORM */
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+  .field input, .field select, .field textarea { width: 100%; font-family: 'Inter', sans-serif; font-size: 14px; padding: 9px 13px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); transition: border-color .15s; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,95,165,.1); }
+  .field textarea { min-height: 110px; resize: vertical; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-hint { font-size: 12px; color: var(--hint); margin-top: 4px; }
+
+  /* BUTTONS */
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 1.25rem; }
+  .btn { padding: 10px 20px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; transition: all .15s; font-family: 'Inter', sans-serif; }
+  .btn-primary { background: var(--blue); color: #fff; border: none; }
+  .btn-primary:hover { opacity: .88; }
+  .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-outline { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { background: var(--surface); }
+  .btn-ghost { background: transparent; color: var(--muted); border: none; padding: 8px 12px; }
+  .btn-ghost:hover { color: var(--text); }
+
+  /* OUTPUT */
+  .output-section { display: none; }
+  .output-section.visible { display: block; }
+  .output-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; border-top: 1px solid var(--border); background: var(--surface); }
+  .output-label { font-size: 13px; font-weight: 500; color: var(--muted); }
+  .output-actions { display: flex; gap: 6px; }
+  .output-body { padding: 1.5rem; }
+  .output-text { font-size: 14px; line-height: 1.8; color: var(--text); white-space: pre-wrap; word-break: break-word; min-height: 60px; }
+  .loading { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; padding: 1rem 0; }
+  .dot-anim span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--blue); margin: 0 2px; animation: blink 1.2s infinite; }
+  .dot-anim span:nth-child(2) { animation-delay: .2s; }
+  .dot-anim span:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%,80%,100%{opacity:.2;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
+
+  /* ATS */
+  .ats-scores { padding: 1rem 1.5rem; background: var(--surface); border-top: 1px solid var(--border); display: none; }
+  .score-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .score-label { font-size: 13px; color: var(--muted); min-width: 100px; }
+  .score-track { flex: 1; height: 7px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 4px; transition: width .7s ease; }
+  .score-pct { font-size: 14px; font-weight: 600; min-width: 38px; text-align: right; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; margin-bottom: 12px; }
+  .chip { font-size: 12px; padding: 3px 10px; border-radius: 20px; }
+  .chip-found { background: var(--teal-light); color: var(--teal-dark); }
+  .chip-miss { background: #FAECE7; color: #712B13; }
+  .chips-label { font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+
+  /* HISTORY */
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+  .history-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); cursor: pointer; }
+  .history-item:hover { border-color: var(--blue); }
+  .hi-left { display: flex; align-items: center; gap: 10px; }
+  .hi-badge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+  .hi-preview { font-size: 13px; color: var(--muted); }
+  .hi-time { font-size: 12px; color: var(--hint); }
+
+  /* TABS (hidden, controlled by sidebar) */
+  .panel { display: none; }
+  .panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <div class="logo-box"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 13h8v1.5H8V13zm0 3h5v1.5H8V16zm0-6h3v1.5H8V10z"/></svg></div>
+    <span class="logo-name">CareerAI</span>
+  </div>
+  <div class="nav-right">
+    <a href="careerai-landing.html"><button class="back-link">← Back to home</button></a>
+  </div>
+</nav>
+
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-title">Tools</div>
+    <div class="sidebar-item active" id="nav-improve" onclick="switchPanel('improve')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+      Improve resume
+    </div>
+    <div class="sidebar-item" id="nav-generate" onclick="switchPanel('generate')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5z"/></svg>
+      Generate resume
+    </div>
+    <div class="sidebar-item" id="nav-cover" onclick="switchPanel('cover')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H4V8l8 5 8-5v10zm-8-7L4 6h16l-8 5z"/></svg>
+      Cover letter
+    </div>
+    <div class="sidebar-item" id="nav-jobs" onclick="switchPanel('jobs')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-4V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zM10 4h4v2h-4V4zm10 16H4V8h16v12z"/></svg>
+      Job suggestions
+    </div>
+    <div class="sidebar-item" id="nav-ats" onclick="switchPanel('ats')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m5 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+      ATS checker
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-item" id="nav-history" onclick="switchPanel('history')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 1 1 2.06 4.94L6.64 18.36A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+      History
+    </div>
+    <div class="sidebar-divider"></div>
+    <div style="padding: 4px;">
+      <div class="stat-mini"><div class="stat-mini-label">Resumes generated</div><div class="stat-mini-val" id="s-resumes">0</div></div>
+      <div class="stat-mini" style="margin-top:6px"><div class="stat-mini-label">Cover letters</div><div class="stat-mini-val" id="s-covers">0</div></div>
+    </div>
+  </aside>
+
+  <!-- MAIN PANEL -->
+  <div>
+
+    <!-- IMPROVE -->
+    <div class="panel active main-card" id="panel-improve">
+      <div class="card-header">
+        <div class="card-title">Improve your resume</div>
+        <div class="card-sub">Paste your existing resume — get a polished, ATS-friendly rewrite with measurable impact.</div>
+      </div>
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field">
+            <label>Target role</label>
+            <input type="text" id="imp-role" placeholder="e.g. Software Engineer">
+          </div>
+          <div class="field">
+            <label>Experience level</label>
+            <select id="imp-level">
+              <option value="fresher">Fresher / Entry level</option>
+              <option value="1-3">1–3 years</option>
+              <option value="3-5" selected>3–5 years</option>
+              <option value="5+">5+ years</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Your current resume</label>
+          <textarea id="imp-input" placeholder="Paste your resume text here. Include skills, experience, education — even if it's messy. The AI will clean it up."></textarea>
+          <div class="field-hint">Tip: The more detail you include, the better the output.</div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="imp-btn" onclick="runTask('improve')">Improve with AI →</button>
+          <button class="btn btn-outline" onclick="clearPanel('improve')">Clear</button>
+        </div>
+      </div>
+      <div class="output-section" id="out-improve">
+        <div class="output-header">
+          <span class="output-label">Improved resume</span>
+          <div class="output-actions">
+            <button class="btn btn-outline" onclick="copyOutput('improve')" style="font-size:13px;padding:7px 14px">Copy</button>
+            <button class="btn btn-outline" onclick="downloadTxt('improve')" style="font-size:13px;padding:7px 14px">TXT</button>
+            <button class="btn btn-primary" onclick="downloadPdf('improve')" style="font-size:13px;padding:7px 14px">PDF ↓</button>
+          </div>
+        </div>
+        <div class="output-body">
+          <div class="output-text" id="otext-improve"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GENERATE -->
+    <div class="panel main-card" id="panel-generate">
+      <div class="card-header">
+        <div class="card-title">Generate a resume from scratch</div>
+        <div class="card-sub">No degree? No problem. Fill in what you know and the AI builds a complete resume.</div>
+      </div>
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field"><label>Full name</label><input type="text" id="gen-name" placeholder="e.g. Rahul Sharma"></div>
+          <div class="field"><label>Target job role</label><input type="text" id="gen-role" placeholder="e.g. Data Analyst"></div>
+        </div>
+        <div class="field"><label>Location / City</label><input type="text" id="gen-location" placeholder="e.g. Mumbai, India"></div>
+        <div class="field">
+          <label>Your skills</label>
+          <input type="text" id="gen-skills" placeholder="e.g. Python, Excel, Communication, Canva, Social Media">
+        </div>
+        <div class="field">
+          <label>Work / freelance experience (any kind)</label>
+          <textarea id="gen-exp" style="min-height:90px" placeholder="e.g. Managed my family's shop for 2 years. Freelanced as a video editor for 10+ clients. Helped a local NGO with their social media."></textarea>
+        </div>
+        <div class="field">
+          <label>Projects (optional)</label>
+          <textarea id="gen-proj" style="min-height:70px" placeholder="e.g. Built a personal portfolio website. Created a monthly budget tracker in Excel. Designed social media graphics for a friend's business."></textarea>
+        </div>
+        <div class="field">
+          <label>Education (optional)</label>
+          <input type="text" id="gen-edu" placeholder="e.g. 12th pass, completed online course in Python (Coursera)">
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="gen-btn" onclick="runTask('generate')">Generate resume →</button>
+          <button class="btn btn-outline" onclick="clearPanel('generate')">Clear</button>
+        </div>
+      </div>
+      <div class="output-section" id="out-generate">
+        <div class="output-header">
+          <span class="output-label">Generated resume</span>
+          <div class="output-actions">
+            <button class="btn btn-outline" onclick="copyOutput('generate')" style="font-size:13px;padding:7px 14px">Copy</button>
+            <button class="btn btn-outline" onclick="downloadTxt('generate')" style="font-size:13px;padding:7px 14px">TXT</button>
+            <button class="btn btn-primary" onclick="downloadPdf('generate')" style="font-size:13px;padding:7px 14px">PDF ↓</button>
+          </div>
+        </div>
+        <div class="output-body">
+          <div class="output-text" id="otext-generate"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COVER LETTER -->
+    <div class="panel main-card" id="panel-cover">
+      <div class="card-header">
+        <div class="card-title">Write a cover letter</div>
+        <div class="card-sub">Get a tailored, confident cover letter for any job in under 30 seconds.</div>
+      </div>
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field"><label>Your name</label><input type="text" id="cl-name" placeholder="e.g. Priya Nair"></div>
+          <div class="field"><label>Job role applying for</label><input type="text" id="cl-role" placeholder="e.g. Marketing Executive"></div>
+        </div>
+        <div class="field"><label>Company name</label><input type="text" id="cl-company" placeholder="e.g. Infosys, TCS, Google India"></div>
+        <div class="field">
+          <label>Your background and skills</label>
+          <textarea id="cl-skills" placeholder="e.g. 2 years in digital marketing, managed SEO campaigns that grew traffic by 40%, strong in content writing and Canva, handled a team of 3..."></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="cl-btn" onclick="runTask('cover')">Write cover letter →</button>
+          <button class="btn btn-outline" onclick="clearPanel('cover')">Clear</button>
+        </div>
+      </div>
+      <div class="output-section" id="out-cover">
+        <div class="output-header">
+          <span class="output-label">Cover letter</span>
+          <div class="output-actions">
+            <button class="btn btn-outline" onclick="copyOutput('cover')" style="font-size:13px;padding:7px 14px">Copy</button>
+            <button class="btn btn-outline" onclick="downloadTxt('cover')" style="font-size:13px;padding:7px 14px">TXT</button>
+            <button class="btn btn-primary" onclick="downloadPdf('cover')" style="font-size:13px;padding:7px 14px">PDF ↓</button>
+          </div>
+        </div>
+        <div class="output-body">
+          <div class="output-text" id="otext-cover"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JOB SUGGESTIONS -->
+    <div class="panel main-card" id="panel-jobs">
+      <div class="card-header">
+        <div class="card-title">Get job suggestions</div>
+        <div class="card-sub">Tell us your skills and we'll match you with 5 real job roles, including what to improve.</div>
+      </div>
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field"><label>Preferred location</label><input type="text" id="job-loc" placeholder="e.g. Mumbai, Remote, Anywhere"></div>
+          <div class="field">
+            <label>Work preference</label>
+            <select id="job-pref">
+              <option>Any</option>
+              <option>Remote only</option>
+              <option>On-site</option>
+              <option>Hybrid</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Your skills and background</label>
+          <textarea id="job-input" placeholder="e.g. I know Python, basic SQL, and Excel. I've done freelance data entry for small businesses. I'm a fast learner. No formal degree but have completed online certificates in data analysis..."></textarea>
+          <div class="field-hint">Be specific — the more detail you give, the better the matches.</div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="job-btn" onclick="runTask('jobs')">Find matching jobs →</button>
+        </div>
+      </div>
+      <div class="output-section" id="out-jobs">
+        <div class="output-header">
+          <span class="output-label">Job suggestions</span>
+          <div class="output-actions">
+            <button class="btn btn-outline" onclick="copyOutput('jobs')" style="font-size:13px;padding:7px 14px">Copy</button>
+          </div>
+        </div>
+        <div class="output-body">
+          <div class="output-text" id="otext-jobs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ATS CHECKER -->
+    <div class="panel main-card" id="panel-ats">
+      <div class="card-header">
+        <div class="card-title">ATS compatibility checker</div>
+        <div class="card-sub">Paste your resume and the job description to see your match score and missing keywords.</div>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Your resume</label>
+          <textarea id="ats-resume" placeholder="Paste your resume here..."></textarea>
+        </div>
+        <div class="field">
+          <label>Job description (paste the job posting)</label>
+          <textarea id="ats-jd" placeholder="Paste the job posting / description here..."></textarea>
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="ats-btn" onclick="runTask('ats')">Check ATS score →</button>
+        </div>
+      </div>
+      <div class="ats-scores" id="ats-results">
+        <div class="score-bar-row">
+          <span class="score-label">ATS match</span>
+          <div class="score-track"><div class="score-fill" id="ats-fill" style="width:0%"></div></div>
+          <span class="score-pct" id="ats-pct">—</span>
+        </div>
+        <div class="chips-label">Keywords found in your resume</div>
+        <div class="chips" id="chips-found"></div>
+        <div class="chips-label">Missing keywords to add</div>
+        <div class="chips" id="chips-missing"></div>
+      </div>
+      <div class="output-section" id="out-ats">
+        <div class="output-header"><span class="output-label">AI advice</span></div>
+        <div class="output-body"><div class="output-text" id="otext-ats"></div></div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="panel main-card" id="panel-history">
+      <div class="card-header">
+        <div class="card-title">Session history</div>
+        <div class="card-sub">Everything you've generated this session. Click to view and re-download.</div>
+      </div>
+      <div class="card-body" id="history-body">
+        <p style="color:var(--muted);font-size:14px">No history yet. Generate something to see it here.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const { jsPDF } = window.jspdf;
+let outputs = {};
+let history = [];
+let stats = { resumes: 0, covers: 0 };
+
+function switchPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+function buildPrompt(task) {
+  if (task === 'improve') {
+    const role = document.getElementById('imp-role').value.trim();
+    const level = document.getElementById('imp-level').value;
+    const resume = document.getElementById('imp-input').value.trim();
+    if (!resume) return null;
+    return `You are an expert ATS-focused resume writer with 15+ years experience.
+Task: improve_resume
+Target role: ${role || 'not specified'}
+Experience level: ${level}
+
+Resume to improve:
+${resume}
+
+Rewrite professionally. Fix grammar and formatting. Add bullet points with measurable impact. Use strong action verbs (Led, Built, Increased, Managed, Delivered, etc.). Make ATS-friendly. Highlight achievements with numbers where possible. Return clean structured resume only — no preamble, no commentary.`;
+  }
+  if (task === 'generate') {
+    const name = document.getElementById('gen-name').value.trim();
+    const role = document.getElementById('gen-role').value.trim();
+    const loc = document.getElementById('gen-location').value.trim();
+    const skills = document.getElementById('gen-skills').value.trim();
+    const exp = document.getElementById('gen-exp').value.trim();
+    const proj = document.getElementById('gen-proj').value.trim();
+    const edu = document.getElementById('gen-edu').value.trim();
+    if (!skills && !name) return null;
+    return `You are an expert resume writer.
+Task: generate_resume
+Name: ${name || '[Your Name]'}
+Location: ${loc || ''}
+Target role: ${role || 'not specified'}
+Skills: ${skills}
+Experience: ${exp || 'none provided'}
+Projects: ${proj || 'none'}
+Education: ${edu || 'not specified'}
+
+Create a complete, professional, ATS-friendly resume. Sections: Name/Contact Header, Professional Summary (3 lines), Skills, Experience (use bullet points with impact even for informal work), Projects (if any), Education. Make it strong even without a formal degree. Use action verbs and measurable results. Return resume only.`;
+  }
+  if (task === 'cover') {
+    const name = document.getElementById('cl-name').value.trim();
+    const role = document.getElementById('cl-role').value.trim();
+    const company = document.getElementById('cl-company').value.trim();
+    const skills = document.getElementById('cl-skills').value.trim();
+    if (!role || !skills) return null;
+    return `You are an expert career coach and cover letter writer.
+Task: cover_letter
+Applicant: ${name || 'the applicant'}
+Job role: ${role}
+Company: ${company || 'the company'}
+Background/skills: ${skills}
+
+Write a personalized, confident cover letter. 150–250 words. Professional but warm tone. Tailored to the specific role and company. No fake experience. Start directly — no "I am writing to apply..." clichés. End with a clear call to action. Return the letter only.`;
+  }
+  if (task === 'jobs') {
+    const loc = document.getElementById('job-loc').value.trim();
+    const pref = document.getElementById('job-pref').value;
+    const input = document.getElementById('job-input').value.trim();
+    if (!input) return null;
+    return `You are an expert recruiter and career coach.
+Task: job_suggestions
+Location preference: ${loc || 'flexible'}
+Work mode: ${pref}
+Candidate background: ${input}
+
+Suggest exactly 5 suitable job roles. For each:
+1. Job title
+2. Why it fits this person (2 sentences max)
+3. Top 3 skills to improve their chances
+4. Example companies in India hiring for this role
+
+Format clearly with numbered sections. No intro text, jump straight into the 5 roles.`;
+  }
+  if (task === 'ats') {
+    const resume = document.getElementById('ats-resume').value.trim();
+    const jd = document.getElementById('ats-jd').value.trim();
+    if (!resume || !jd) return null;
+    return `You are an ATS (Applicant Tracking System) expert.
+Analyze this resume against the job description.
+
+Resume:
+${resume}
+
+Job Description:
+${jd}
+
+Respond ONLY with valid JSON — no markdown, no backticks, no extra text:
+{"score":75,"found_keywords":["Python","SQL","communication"],"missing_keywords":["Tableau","Agile","JIRA"],"summary":"2-3 sentences of specific, actionable advice on what to improve to pass this ATS filter."}`;
+  }
+  return null;
+}
+
+const btnIds = { improve:'imp-btn', generate:'gen-btn', cover:'cl-btn', jobs:'job-btn', ats:'ats-btn' };
+const labelMap = { improve:'Improved resume', generate:'Generated resume', cover:'Cover letter', jobs:'Job suggestions', ats:'ATS analysis' };
+
+async function runTask(task) {
+  const prompt = buildPrompt(task);
+  if (!prompt) { alert('Please fill in the required fields.'); return; }
+
+  const btn = document.getElementById(btnIds[task]);
+  const outSec = document.getElementById('out-' + task);
+  const outText = document.getElementById('otext-' + task);
+
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+  outText.innerHTML = '<div class="loading"><div class="dot-anim"><span></span><span></span><span></span></div> Generating with AI...</div>';
+  outSec.classList.add('visible');
+  if (task === 'ats') document.getElementById('ats-results').style.display = 'none';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.map(b => b.text || '').join('') || 'Something went wrong. Please try again.';
+
+    if (task === 'ats') {
+      try {
+        const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+        outText.textContent = parsed.summary || 'Analysis complete.';
+        showATS(parsed);
+      } catch { outText.textContent = text; }
+    } else {
+      outText.textContent = text;
+      outputs[task] = text;
+      addHistory(task, text);
+      if (task === 'improve' || task === 'generate') { stats.resumes++; document.getElementById('s-resumes').textContent = stats.resumes; }
+      if (task === 'cover') { stats.covers++; document.getElementById('s-covers').textContent = stats.covers; }
+    }
+  } catch (e) {
+    outText.textContent = 'Error connecting to AI. Please check your connection and try again.';
+  }
+
+  btn.disabled = false;
+  const labels = { improve:'Improve with AI →', generate:'Generate resume →', cover:'Write cover letter →', jobs:'Find matching jobs →', ats:'Check ATS score →' };
+  btn.textContent = labels[task];
+}
+
+function showATS(data) {
+  const score = Math.min(100, Math.max(0, Math.round(data.score || 0)));
+  document.getElementById('ats-pct').textContent = score + '%';
+  const fill = document.getElementById('ats-fill');
+  fill.style.width = score + '%';
+  fill.style.background = score >= 70 ? '#1D9E75' : score >= 45 ? '#BA7517' : '#E24B4A';
+  document.getElementById('chips-found').innerHTML = (data.found_keywords || []).map(k => `<span class="chip chip-found">${k}</span>`).join('');
+  document.getElementById('chips-missing').innerHTML = (data.missing_keywords || []).map(k => `<span class="chip chip-miss">${k}</span>`).join('');
+  document.getElementById('ats-results').style.display = 'block';
+}
+
+function copyOutput(task) {
+  const text = outputs[task] || document.getElementById('otext-' + task).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Copied to clipboard!');
+  });
+}
+
+function downloadTxt(task) {
+  const text = outputs[task] || document.getElementById('otext-' + task).textContent;
+  if (!text) return;
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (labelMap[task] || task).replace(/\s+/g, '_').toLowerCase() + '_careerai.txt';
+  a.click();
+}
+
+function downloadPdf(task) {
+  const text = outputs[task] || document.getElementById('otext-' + task).textContent;
+  if (!text) return;
+
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 20;
+  const maxW = pageW - margin * 2;
+  let y = 20;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(24, 95, 165);
+  doc.text('CareerAI — ' + (labelMap[task] || task), margin, y);
+  y += 8;
+
+  doc.setDrawColor(200, 200, 200);
+  doc.line(margin, y, pageW - margin, y);
+  y += 8;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(30, 30, 30);
+
+  const lines = text.split('\n');
+  for (const line of lines) {
+    if (y > 270) { doc.addPage(); y = 20; }
+    if (line.trim() === '') { y += 4; continue; }
+
+    const isBold = /^[A-Z\s]{4,}$/.test(line.trim()) || /^#+\s/.test(line) || line.endsWith(':');
+    doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+
+    const wrapped = doc.splitTextToSize(line.replace(/^#+\s*/, ''), maxW);
+    for (const wl of wrapped) {
+      if (y > 275) { doc.addPage(); y = 20; }
+      doc.text(wl, margin, y);
+      y += 5.5;
+    }
+  }
+
+  doc.save((labelMap[task] || task).replace(/\s+/g, '_').toLowerCase() + '_careerai.pdf');
+}
+
+const badgeColors = {
+  improve: { bg: '#E6F1FB', color: '#0C447C' },
+  generate: { bg: '#E1F5EE', color: '#085041' },
+  cover: { bg: '#EEEDFE', color: '#3C3489' },
+  jobs: { bg: '#FAECE7', color: '#712B13' },
+};
+const taskLabels = { improve:'Resume improved', generate:'Resume generated', cover:'Cover letter', jobs:'Job suggestions' };
+
+function addHistory(task, text) {
+  history.unshift({ task, text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+  if (history.length > 12) history.pop();
+}
+
+function renderHistory() {
+  const body = document.getElementById('history-body');
+  if (!history.length) { body.innerHTML = '<p style="color:var(--muted);font-size:14px">No history yet. Generate something to see it here.</p>'; return; }
+  body.innerHTML = '<div class="history-list">' + history.map((h, i) => {
+    const c = badgeColors[h.task] || { bg: '#E6F1FB', color: '#0C447C' };
+    return `<div class="history-item" onclick="restoreHistory(${i})">
+      <div class="hi-left">
+        <span class="hi-badge" style="background:${c.bg};color:${c.color}">${taskLabels[h.task] || h.task}</span>
+        <span class="hi-preview">${h.text.substring(0, 55).replace(/\n/g, ' ')}...</span>
+      </div>
+      <span class="hi-time">${h.time}</span>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function restoreHistory(i) {
+  const item = history[i];
+  outputs[item.task] = item.text;
+  const otext = document.getElementById('otext-' + item.task);
+  if (otext) otext.textContent = item.text;
+  document.getElementById('out-' + item.task).classList.add('visible');
+  switchPanel(item.task);
+}
+
+function clearPanel(task) {
+  document.getElementById('out-' + task).classList.remove('visible');
+}
+</script>
+</body>
+</html>
